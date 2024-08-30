@@ -1,0 +1,42 @@
+name: GitHub Classroom Workflow
+run-name: ${{ github.actor }} triggered autograde
+
+on: [push]
+
+permissions:
+  checks: write
+  actions: read
+  contents: read
+
+jobs:
+  Grading:
+    if: ${{ github.repository != 'BF591-R/bf591-assignment-base-r' && github.actor != 'github-classroom[bot]' }}
+    name: Testing code
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/bf591-r/bf591-r-docker:latest
+      volumes:
+        - .:/github/workspace
+    steps:
+      - name: checkout submission
+        uses: actions/checkout@v4
+        with:
+            repository: ${{ github.repository }}
+      - name: checkout template tests
+        uses: actions/checkout@v4
+        with:
+            repository: BF591-R/bf591-assignment-base-r
+            path: template
+      - name: run tests
+        run: |
+          cp template/test_main.R .
+          bash /entrypoint.sh test main.R test_main.R test_results.csv
+          # cat out test_results.csv for funzies
+          cat test_results.csv
+      - name: upload test results as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: test_results.csv
+      - uses: education/autograding@v1
+
